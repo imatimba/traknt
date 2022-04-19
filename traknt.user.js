@@ -43,17 +43,15 @@ function getLink(showObj){
       .then(xmlResponse => {
         const jsonResponse = x2js.xml_str2json(xmlResponse)
         const searchResults = jsonResponse.rss.channel.item
+        //console.log(searchResults)
         let topSeeders = 0
         let topLink = ''
 
         if (Array.isArray(searchResults)){
             searchResults.forEach(obj => {
-                let i = 4
-                if (!obj.attr[6]){
-                    i = 2
-                }
-                const seeders = Number(obj.attr[i]._value)
+                const seeders = getSeeders(obj) //Number(obj.attr[i]._value)
                 const link = obj.link
+                
                 if (seeders > topSeeders){
                     topSeeders = seeders
                     topLink = link
@@ -61,7 +59,7 @@ function getLink(showObj){
         })}else if (typeof searchResults === 'object' && searchResults !== null){
             topLink = searchResults.link
         }
-        // console.log(topSeeders)
+
         if (topLink){
             return topLink
         }else{
@@ -94,4 +92,13 @@ function getShow(showLink){
     }
 
     return showData
+}
+
+function getSeeders(objSeed){
+    let seeders = ''
+    objSeed.attr.forEach(attr => {
+        if (attr._name === 'seeders')
+            seeders = attr._value
+    })
+    return seeders
 }
