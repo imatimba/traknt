@@ -16,26 +16,26 @@
 (function initialize() {
     const gridItems = document.querySelectorAll('.grid-item')
     gridItems.forEach(element => {
-        if (!element.firstChild.content){ //handle the VIP ad that takes a grid space
+        const showTraktUrl = element.firstChild.content
+                
+        if (!showTraktUrl) { //handle the VIP ad that takes a grid space
             return 
+        } else {
+            const show = getShow(showTraktUrl)
+            getLink(show).then(link => {
+                if (link) {
+                    element.children[2].children[0].innerHTML += `
+                    <a class="watch-now" href="${link}">
+                        <img class="trakt-icon-collection-thick" src="data:image/png;base64, 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"
+                        alt="Magnet Icon">
+                    </a>`
+                }
+            })
         }
-
-        const showInfo = element.firstChild.content
-        const show = getShow(showInfo)
-        
-        getLink(show).then(link => {
-            if (link){
-                element.children[2].children[0].innerHTML += `
-                <a href="${link}">
-                    <img class="trakt-icon-collection-thick" src="data:image/png;base64, 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"
-                    alt="Magnet Icon">
-                </a>`
-            }
-        })
     })
 })();
 
-function getLink(showObj){
+function getLink(showObj) {
   const url = `http://127.0.0.1:9117/api/v2.0/indexers/tag:trakt/results/torznab/api?q=${showObj.name}+S${showObj.season}E${showObj.episode}+1080&apikey=jf1oooy4hhn2m7yw1t4ihymlik9jcbzi`
   const x2js = new X2JS()
   return fetch(url)
@@ -47,22 +47,22 @@ function getLink(showObj){
         let topSeeders = 0
         let topLink = ''
 
-        if (Array.isArray(searchResults)){
+        if (Array.isArray(searchResults)) {
             searchResults.forEach(obj => {
                 const seeders = getSeeders(obj)
                 const link = obj.link
 
-                if (seeders > topSeeders){
+                if (seeders > topSeeders) {
                     topSeeders = seeders
                     topLink = link
                 }
-        })}else if (typeof searchResults === 'object' && searchResults !== null){
+        })} else if (typeof searchResults === 'object' && searchResults !== null) {
             topLink = searchResults.link
         }
 
-        if (topLink){
+        if (topLink) {
             return topLink
-        }else{
+        } else {
             return null
         }
         
@@ -72,16 +72,16 @@ function getLink(showObj){
       });
 }
 
-function getShow(showLink){
+function getShow(showLink) {
     const showName = (showLink.match(/(?<=shows\/\s*).*?(?=\s*\/seasons)/gs))[0].replaceAll('-', '+')
     let showSeason = (showLink.match(/(?<=seasons\/\s*).*?(?=\s*\/episodes)/gs))[0]
     let showEpisode = (showLink.match(/(?<=episodes\/\s*).*?(.*)/gs))[0]
 
-    if (showSeason < 10){
+    if (showSeason < 10) {
         showSeason = '0' + showSeason
     }
 
-    if (showEpisode < 10){
+    if (showEpisode < 10) {
         showEpisode = '0' + showEpisode
     }
     
@@ -94,9 +94,9 @@ function getShow(showLink){
     return showData
 }
 
-function getSeeders(objSeed){
+function getSeeders(seedObj) {
     let seeders = ''
-    objSeed.attr.forEach(attr => {
+    seedObj.attr.forEach(attr => {
         if (attr._name === 'seeders')
             seeders = attr._value
     })
