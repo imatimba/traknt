@@ -4,7 +4,7 @@
 // @match        https://trakt.tv/calendars*
 // @match        http://trakt.tv/calendars*
 // @grant       none
-// @version     1.0
+// @version     1.1
 // @author      imatimba
 // @description 4/16/2022, 12:33:16 AM
 // ==/UserScript==
@@ -49,9 +49,9 @@ function getLink(showObj){
 
         if (Array.isArray(searchResults)){
             searchResults.forEach(obj => {
-                const seeders = getSeeders(obj) //Number(obj.attr[i]._value)
+                const seeders = getSeeders(obj)
                 const link = obj.link
-                
+
                 if (seeders > topSeeders){
                     topSeeders = seeders
                     topLink = link
