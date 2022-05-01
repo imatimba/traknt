@@ -19,20 +19,20 @@
 
     gridItems.forEach(element => {
         const showTraktUrl = element.firstChild.content
+        const showName = element.querySelector('div.titles span.hidden meta')?.content
+        const tvNetwork = element.querySelector('div.titles h4.generic')?.textContent
+        const absoluteEpisode = element.querySelector('span.main-title-abs')?.textContent.match(/\((.*)\)/).pop()
+        let isAnime = false
 
         if (!showTraktUrl) { //handle the VIP ad that takes a grid space
             return 
         } else {
-            const showName = element.querySelector('div.titles span.hidden meta').content
-            const tvNetwork = element.querySelector('div.titles h4.generic').textContent
-            let isAnime = false
-            
-            if (jpTvNetworks.includes(tvNetwork)) {
+             if (jpTvNetworks.includes(tvNetwork)) {
                 isAnime = true
             }
             //console.log(showName)
             if (isAnime) {
-                getAnime(showName, showTraktUrl)
+                getAnime(showName, showTraktUrl, absoluteEpisode)
                     .then(show => {
                         getLink(show, isAnime).then(link => {
                             if (link) {
@@ -136,7 +136,7 @@ function getShow(showNameStr, showLink) {
     return showData
 }
 
-function getAnime(showNameStr, showLink) {
+function getAnime(showNameStr, showLink, absoluteEpisode) {
     let showName
     let showSeason = (showLink.match(/(?<=seasons\/\s*).*?(?=\s*\/episodes)/gs))[0]
     let showEpisode = (showLink.match(/(?<=episodes\/\s*).*?(.*)/gs))[0]
@@ -177,6 +177,10 @@ function getAnime(showNameStr, showLink) {
             }
             if (showSeason == 1) {
                 showSeason = ''
+            }
+            if (absoluteEpisode) {
+                showSeason = ''
+                showEpisode = absoluteEpisode
             }
             const showData = {
                 name: showName,
