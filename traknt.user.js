@@ -53,7 +53,7 @@
 })();
 
 function getLink(showObj, isAnime) {
-  const url = `http://127.0.0.1:9117/api/v2.0/indexers/${isAnime?'nyaasi':'1337x'}/results/torznab/api?q=${showObj.name}${showObj.season === '' ? '':`+S${showObj.season}`}${isAnime?'+':'E'}${showObj.episode}+1080${isAnime ? '+subsplease' : ''}&apikey=jf1oooy4hhn2m7yw1t4ihymlik9jcbzi`
+  const url = `http://127.0.0.1:9117/api/v2.0/indexers/${isAnime?'nyaasi':'1337x'}/results/torznab/api?q=${showObj.name}${!isAnime?`+S${showObj.season}`:''}${isAnime?'+':'E'}${showObj.episode}${!isAnime?'+1080':''}${isAnime?'&Category[]=127720':''}&apikey=jf1oooy4hhn2m7yw1t4ihymlik9jcbzi`
   //console.log(url)
   //console.log(showObj)
   const x2js = new X2JS()
@@ -68,7 +68,7 @@ function getLink(showObj, isAnime) {
 
         if (Array.isArray(searchResults)) {
             searchResults.forEach(obj => {
-                if (isAnime && !obj.title.includes(` ${showObj.episode} `)) {
+                if (isAnime && !obj.title.includes(` ${showObj.episode}`)) {
                     return
                 }
                 //console.log(obj)
