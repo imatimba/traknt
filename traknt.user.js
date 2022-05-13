@@ -30,7 +30,6 @@
              if (jpTvNetworks.includes(tvNetwork)) {
                 isAnime = true
             }
-            //console.log(showName)
             if (isAnime) {
                 getAnime(showName, showTraktUrl, absoluteEpisode)
                     .then(show => {
@@ -53,25 +52,21 @@
 })();
 
 function getLink(showObj, isAnime) {
-  const url = `http://127.0.0.1:9117/api/v2.0/indexers/${isAnime?'nyaasi':'1337x'}/results/torznab/api?q=${showObj.name}${!isAnime?`+S${showObj.season}`:''}${isAnime?'+':'E'}${showObj.episode}${!isAnime?'+1080':''}${isAnime?'&Category[]=127720':''}&apikey=jf1oooy4hhn2m7yw1t4ihymlik9jcbzi`
-  //console.log(url)
-  //console.log(showObj)
+  const url = `http://127.0.0.1:9117/api/v2.0/indexers/${isAnime?'nyaasi':'1337x'}/results/torznab/api?q=${showObj.name}${showObj.season === '' ? '':`+S${showObj.season}`}${isAnime?'+':'E'}${showObj.episode}${!isAnime?'+1080':''}${isAnime?'&Category[]=127720':''}&apikey=jf1oooy4hhn2m7yw1t4ihymlik9jcbzi`
   const x2js = new X2JS()
   return fetch(url)
       .then(response => response.text()) // parse response as XML string
       .then(xmlResponse => {
         const jsonResponse = x2js.xml_str2json(xmlResponse)
         const searchResults = jsonResponse.rss.channel.item
-        //console.log(searchResults)
         let topSeeders = 0
         let topLink
 
         if (Array.isArray(searchResults)) {
             searchResults.forEach(obj => {
-                if (isAnime && !obj.title.includes(` ${showObj.episode}`)) {
+                if (isAnime && (!obj.title.includes(` ${showObj.episode} `) || obj.title.includes('720' || '480'))) {
                     return
                 }
-                //console.log(obj)
                 const seeders = getSeeders(obj)
                 let link
 
@@ -87,7 +82,9 @@ function getLink(showObj, isAnime) {
                 }
         })} else if (typeof searchResults === 'object' && searchResults !== null) {
             if (isAnime) {
-                topLink = searchResults.attr[6]._value
+                if (searchResults.title.includes(` ${showObj.episode} `) && !searchResults.title.includes('720' || '480')) {
+                    topLink = searchResults.attr[6]._value
+                }                
             }else {
                 topLink = searchResults.link
             }
@@ -171,7 +168,6 @@ function getAnime(showNameStr, showLink, absoluteEpisode) {
         .then(json => {
             const romaji = cleanRomaji(json.data.Media.title.romaji)
             showName = romaji.replaceAll(' ', '+')
-            //console.log(showName)
             if (showEpisode < 10) {
                 showEpisode = '0' + showEpisode
             }
