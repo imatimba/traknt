@@ -71,7 +71,7 @@ function getLink(showObj, isAnime) {
                 let link
 
                 if (isAnime) {
-                    link = obj.attr[6]._value
+                    link = getAnimeMagnet(obj)
                 }else {
                     link = obj.link
                 }
@@ -83,7 +83,7 @@ function getLink(showObj, isAnime) {
         })} else if (typeof searchResults === 'object' && searchResults !== null) {
             if (isAnime) {
                 if (searchResults.title.includes(` ${showObj.episode} `) && !searchResults.title.includes('720' || '480')) {
-                    topLink = searchResults.attr[6]._value
+                    topLink = getAnimeMagnet(searchResults)
                 }                
             }else {
                 topLink = searchResults.link
@@ -198,6 +198,15 @@ function getSeeders(seedObj) {
             seeders = Number(attr._value)
     })
     return seeders
+}
+
+function getAnimeMagnet(animeMagnetObj) {
+    let link
+    animeMagnetObj.attr.forEach(attr => {
+        if (attr._name === 'magneturl')
+            link = attr._value
+    })
+    return link
 }
 
 function cleanRomaji(romajiStr) {
