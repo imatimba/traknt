@@ -330,15 +330,15 @@ async function getAnime(showNameStr, showLink, absoluteEpisode) {
 
     showName = romaji.replaceAll(" ", "+");
 
+    if (absoluteEpisode && showEpisode > 30) {
+      showSeason = "";
+      showEpisode = absoluteEpisode;
+    }
     if (showEpisode < 10) {
       showEpisode = "0" + showEpisode;
     }
     if (showSeason == 1) {
       showSeason = "";
-    }
-    if (absoluteEpisode) {
-      showSeason = "";
-      showEpisode = absoluteEpisode;
     }
     const showData = {
       name: showName,
