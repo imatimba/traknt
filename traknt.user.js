@@ -295,13 +295,10 @@ async function getAnime(showNameStr, showLink) {
   let showSeason = showLink.match(/(?<=seasons\/\s*).*?(?=\s*\/episodes)/gs)[0];
   let showEpisode = showLink.match(/(?<=episodes\/\s*).*?(.*)/gs)[0];
 
-  if  (showEpisode > 50){
-    showSeason = "";
-  }
   if (showEpisode < 10) {
     showEpisode = "0" + showEpisode;
   }
-  if (showSeason == 1) {
+  if (showSeason == 1 || showEpisode > 50) {
     showSeason = "";
   }
   const showData = {
@@ -309,7 +306,7 @@ async function getAnime(showNameStr, showLink) {
     season: showSeason,
     episode: showEpisode,
   };
-  //console.dir(showData);
+  console.dir(showData);
   return showData;
 }
 
@@ -368,7 +365,8 @@ function getAnimeMagnet(animeMagnetObj) {
 }
 
 function cleanRomaji(romajiStr) {
-  const regex = /.+?(?=Part)|.+?(?=Season)|.+?(?=SEASON)|^([^:])+/gs;
+  const regex =
+    /.+?(?=[0-9]th)|.+?(?=Part)|.+?(?=Season)|.+?(?=SEASON)|^([^:])+/gs;
   return romajiStr.match(regex)[0].trim();
 }
 
