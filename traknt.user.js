@@ -294,10 +294,30 @@ function getShow(showNameStr, showLink) {
 }
 
 async function getAnime(showNameStr, showLink, absoluteEpisode) {
-  let showName;
+  const showName = await getRomaji(showNameStr);
   let showSeason = showLink.match(/(?<=seasons\/\s*).*?(?=\s*\/episodes)/gs)[0];
   let showEpisode = showLink.match(/(?<=episodes\/\s*).*?(.*)/gs)[0];
 
+  if (absoluteEpisode && showEpisode > 30) {
+    showSeason = "";
+    showEpisode = absoluteEpisode;
+  }
+  if (showEpisode < 10) {
+    showEpisode = "0" + showEpisode;
+  }
+  if (showSeason == 1) {
+    showSeason = "";
+  }
+  const showData = {
+    name: showName,
+    season: showSeason,
+    episode: showEpisode,
+  };
+  console.dir(showData);
+  return showData;
+}
+
+async function getRomaji(showNameStr) {
   const query = `
     query ($search: String) {
         Media (search: $search, type: ANIME, sort: TRENDING_DESC) {
@@ -327,26 +347,9 @@ async function getAnime(showNameStr, showLink, absoluteEpisode) {
     const response = await fetch(url, options);
     const json = await response.json();
     const romaji = cleanRomaji(json.data.Media.title.romaji);
-
     showName = romaji.replaceAll(" ", "+");
 
-    if (absoluteEpisode && showEpisode > 30) {
-      showSeason = "";
-      showEpisode = absoluteEpisode;
-    }
-    if (showEpisode < 10) {
-      showEpisode = "0" + showEpisode;
-    }
-    if (showSeason == 1) {
-      showSeason = "";
-    }
-    const showData = {
-      name: showName,
-      season: showSeason,
-      episode: showEpisode,
-    };
-    console.dir(showData);
-    return showData;
+    return showName;
   } catch (error) {
     console.error(error);
   }
