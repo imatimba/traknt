@@ -62,6 +62,7 @@
     "Kyushu Asahi Broadcasting",
     "ABC TV",
     "ABEMA",
+    "AbemaTV",
     "SBC",
     "BS Asahi",
     "Hulu",
@@ -161,10 +162,6 @@
     const tvNetwork = element.querySelector(
       "div.titles h4.generic"
     )?.textContent;
-    const absoluteEpisode = element
-      .querySelector("span.main-title-abs")
-      ?.textContent.match(/\((.*)\)/)
-      .pop();
     let isAnime = false;
 
     if (!showTraktUrl) {
@@ -175,7 +172,7 @@
         isAnime = true;
       }
       if (isAnime) {
-        const show = await getAnime(showName, showTraktUrl, absoluteEpisode);
+        const show = await getAnime(showName, showTraktUrl);
         const link = await getLink(show, isAnime);
 
         if (link) {
@@ -293,14 +290,13 @@ function getShow(showNameStr, showLink) {
   return showData;
 }
 
-async function getAnime(showNameStr, showLink, absoluteEpisode) {
+async function getAnime(showNameStr, showLink) {
   const showName = await getRomaji(showNameStr);
   let showSeason = showLink.match(/(?<=seasons\/\s*).*?(?=\s*\/episodes)/gs)[0];
   let showEpisode = showLink.match(/(?<=episodes\/\s*).*?(.*)/gs)[0];
 
-  if (absoluteEpisode && showEpisode > 30) {
+  if  (showEpisode > 50){
     showSeason = "";
-    showEpisode = absoluteEpisode;
   }
   if (showEpisode < 10) {
     showEpisode = "0" + showEpisode;
@@ -313,7 +309,7 @@ async function getAnime(showNameStr, showLink, absoluteEpisode) {
     season: showSeason,
     episode: showEpisode,
   };
-  console.dir(showData);
+  //console.dir(showData);
   return showData;
 }
 
