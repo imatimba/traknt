@@ -151,6 +151,7 @@
     "時代劇専門ch",
     "TV Shizuoka",
     "Anistream",
+    "Okinawa Television Broadcasting",
   ];
 
   await sleep(2000);
@@ -306,7 +307,7 @@ async function getAnime(showNameStr, showLink) {
     season: showSeason,
     episode: showEpisode,
   };
-  //console.dir(showData);
+  console.dir(showData);
   return showData;
 }
 
