@@ -217,6 +217,7 @@ async function getLink(showObj, isAnime) {
         if (
           isAnime &&
           (!obj.title.includes(` ${showObj.episode} `) ||
+            !containsOnlyAscii(obj.title) ||
             obj.title.includes("720" || "480"))
         ) {
           return;
@@ -363,4 +364,8 @@ function cleanRomaji(romajiStr) {
 
 async function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function containsOnlyAscii(str) {
+  return /^[\u0000-\u007f]*$/.test(str);
 }
