@@ -180,13 +180,6 @@
         if (link) {
           insertHtml(link, filename, element);
         }
-      } else {
-        const show = getShow(showName, showTraktUrl);
-        const [link, filename] = await getLink(show, isAnime);
-
-        if (link) {
-          insertHtml(link, filename, element);
-        }
       }
     }
   });
