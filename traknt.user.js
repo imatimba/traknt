@@ -10,6 +10,8 @@
 // @require     https://raw.githubusercontent.com/abdolence/x2js/master/xml2json.min.js
 // ==/UserScript==
 
+let getRomajiQueue = Promise.resolve();
+
 (async function initialize() {
   "use strict";
   const gridItems = document.querySelectorAll(".grid-item");
@@ -307,12 +309,24 @@ async function getAnime(showNameStr, showLink) {
     season: showSeason,
     episode: showEpisode,
   };
-  console.dir(showData);
+  //console.dir(showData);
   return showData;
 }
 
 async function getRomaji(showNameStr) {
-  const query = `
+  getRomajiQueue = getRomajiQueue.then(async () => {
+    // Wait 500ms before each request except the first
+    if (getRomaji.lastCall) {
+      const wait = 500 - (Date.now() - getRomaji.lastCall);
+      if (wait > 0) {
+        console.debug(`[getRomaji] Queue: waiting ${wait}ms for`, showNameStr);
+        await new Promise(res => setTimeout(res, wait));
+      }
+    }
+    getRomaji.lastCall = Date.now();
+    console.debug(`[getRomaji] Queue: sending request for`, showNameStr);
+
+    const query = `
     query ($search: String) {
         Media (search: $search, type: ANIME, sort: TRENDING_DESC) {
           title {
@@ -321,32 +335,33 @@ async function getRomaji(showNameStr) {
        }
     }
     `;
-  const variables = {
-    search: showNameStr,
-  };
-  const url = "https://graphql.anilist.co",
-    options = {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-      body: JSON.stringify({
-        query: query,
-        variables: variables,
-      }),
+    const variables = {
+      search: showNameStr,
     };
+    const url = "https://graphql.anilist.co",
+      options = {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          query: query,
+          variables: variables,
+        }),
+      };
 
-  try {
-    const response = await fetch(url, options);
-    const json = await response.json();
-    const romaji = cleanRomaji(json.data.Media.title.romaji);
-    showName = romaji.replaceAll(" ", "+");
-
-    return showName;
-  } catch (error) {
-    console.error(error);
-  }
+    try {
+      const response = await fetch(url, options);
+      const json = await response.json();
+      const romaji = cleanRomaji(json.data.Media.title.romaji);
+      const showName = romaji.replaceAll(" ", "+");
+      return showName;
+    } catch (error) {
+      console.error(error);
+    }
+  });
+  return getRomajiQueue;
 }
 
 function getSeeders(seedObj) {
