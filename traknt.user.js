@@ -152,6 +152,7 @@
     "TV Shizuoka",
     "Anistream",
     "Okinawa Television Broadcasting",
+    "MBC South Japan Broadcasting"
   ];
 
   await sleep(2000);
