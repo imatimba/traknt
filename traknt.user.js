@@ -196,68 +196,66 @@ let getRomajiQueue = Promise.resolve();
 async function getLink(showObj, isAnime) {
   const baseUrl = "http://127.0.0.1:9117/api/v2.0/indexers/";
   const jApiKey = "gpuwmvml5dp37c5wce8fbzbzj2wn4d8c";
-  const url = `${baseUrl}${
-    isAnime ? "nyaasi" : "1337x"
-  }/results/torznab/api?q=${showObj.name}${
-    showObj.season === "" ? "" : `+S${showObj.season}`
-  }${isAnime ? "+" : "E"}${showObj.episode}${!isAnime ? "+1080" : ""}${
-    isAnime ? "&Category[]=127720" : ""
-  }&apikey=${jApiKey}`;
   const x2js = new X2JS();
+  // Support both array and string for showObj.name
+  const names = Array.isArray(showObj.name) ? showObj.name : [showObj.name];
 
-  try {
-    const response = await fetch(url);
-    const xmlResponse = await response.text();
-
-    const jsonResponse = x2js.xml_str2json(xmlResponse);
-    const searchResults = jsonResponse.rss.channel.item;
-    let topSeeders = 0;
-    let topLink;
-    let topFilename;
-    //console.dir(searchResults);
-    if (Array.isArray(searchResults)) {
-      searchResults.forEach((obj) => {
-        if (
-          isAnime &&
-          (!obj.title.includes(` ${showObj.episode} `) ||
-            !containsOnlyAscii(obj.title) ||
-            obj.title.includes("720" || "480"))
-        ) {
-          return;
-        }
-        const seeders = getSeeders(obj);
-        let link = obj.link;
-        let filename = obj.title;
-
-        if (seeders > topSeeders) {
-          topSeeders = seeders;
-          topLink = link;
-          topFilename = filename;
-        }
-      });
-    } else if (typeof searchResults === "object" && searchResults !== null) {
-      if (isAnime) {
-        if (
-          searchResults.title.includes(` ${showObj.episode} `) &&
-          !searchResults.title.includes("720" || "480")
-        ) {
+  for (let i = 0; i < names.length; i++) {
+    const name = names[i];
+    const url = `${baseUrl}${isAnime ? "nyaasi" : "1337x"}/results/torznab/api?q=${name}${showObj.season === "" ? "" : `+S${showObj.season}`}${isAnime ? "+" : "E"}${showObj.episode}${!isAnime ? "+1080" : ""}&apikey=${jApiKey}`;
+    try {
+      const response = await fetch(url);
+      const xmlResponse = await response.text();
+      const jsonResponse = x2js.xml_str2json(xmlResponse);
+      const searchResults = jsonResponse.rss.channel.item;
+      let topSeeders = 0;
+      let topLink;
+      let topFilename;
+      console.debug(`[getLink] Search for name: ${name}`, searchResults);
+      if (Array.isArray(searchResults)) {
+        searchResults.forEach((obj) => {
+          if (
+            isAnime &&
+            (!obj.title.includes(` ${showObj.episode} `) &&
+             !obj.title.match(new RegExp(`S\\d{1,2}E${showObj.episode}`)) &&
+              obj.title.includes("720" || "480"))
+          ) {
+            return;
+          }
+          const seeders = getSeeders(obj);
+          let link = obj.link;
+          let filename = obj.title;
+          if (seeders > topSeeders) {
+            topSeeders = seeders;
+            topLink = link;
+            topFilename = filename;
+          }
+        });
+      } else if (typeof searchResults === "object" && searchResults !== null) {
+        if (isAnime) {
+          if (
+            searchResults.title.includes(` ${showObj.episode} `) &&
+            !searchResults.title.includes("720" || "480")
+          ) {
+            topLink = searchResults.link;
+            topFilename = searchResults.title;
+          }
+        } else {
           topLink = searchResults.link;
           topFilename = searchResults.title;
         }
-      } else {
-        topLink = searchResults.link;
-        topFilename = searchResults.title;
       }
+      console.debug(`[getLink] Top link: ${topLink}, Top filename: ${topFilename}`);
+      if (topLink) {
+        return [topLink, topFilename];
+      }
+      // else, try next name
+    } catch (error) {
+      console.error(error);
     }
-
-    if (topLink) {
-      return [topLink, topFilename];
-    } else {
-      return null;
-    }
-  } catch (error) {
-    console.error(error);
   }
+  // If none succeeded
+  return null;
 }
 
 function insertHtml(link, filename, element) {
@@ -309,7 +307,7 @@ async function getAnime(showNameStr, showLink) {
     season: showSeason,
     episode: showEpisode,
   };
-  //console.dir(showData);
+  console.dir(showData);
   return showData;
 }
 
@@ -319,12 +317,12 @@ async function getRomaji(showNameStr) {
     if (getRomaji.lastCall) {
       const wait = 500 - (Date.now() - getRomaji.lastCall);
       if (wait > 0) {
-        console.debug(`[getRomaji] Queue: waiting ${wait}ms for`, showNameStr);
+        //console.debug(`[getRomaji] Queue: waiting ${wait}ms for`, showNameStr);
         await new Promise(res => setTimeout(res, wait));
       }
     }
     getRomaji.lastCall = Date.now();
-    console.debug(`[getRomaji] Queue: sending request for`, showNameStr);
+    //console.debug(`[getRomaji] Queue: sending request for`, showNameStr);
 
     const query = `
     query ($search: String) {
@@ -332,6 +330,7 @@ async function getRomaji(showNameStr) {
           title {
             romaji
           }
+          synonyms
        }
     }
     `;
@@ -354,8 +353,13 @@ async function getRomaji(showNameStr) {
     try {
       const response = await fetch(url, options);
       const json = await response.json();
-      const romaji = cleanRomaji(json.data.Media.title.romaji);
-      const showName = romaji.replaceAll(" ", "+");
+      console.debug(`[getRomaji] Response for`, showNameStr, json);
+      const romaji = cleanName(json.data.Media.title.romaji).replaceAll(" ", "+");
+      let synonym = null;
+      if (json.data.Media.synonyms && Array.isArray(json.data.Media.synonyms) && json.data.Media.synonyms[0]) {
+        synonym = cleanName(json.data.Media.synonyms[0]).replaceAll(" ", "+");
+      }
+      const showName = synonym ? [romaji, synonym] : [romaji];
       return showName;
     } catch (error) {
       console.error(error);
@@ -372,10 +376,10 @@ function getSeeders(seedObj) {
   return seeders;
 }
 
-function cleanRomaji(romajiStr) {
+function cleanName(nameStr) {
   const regex =
-    /^.*?(?=2nd|[0-9]th|Part|Season|SEASON|:|$)/gs;
-  return romajiStr.match(regex)[0].trim();
+    /^.*?(?=2nd|[0-9]th|Part|Season|SEASON| 2|:|$)/gs;
+  return nameStr.match(regex)[0].trim();
 }
 
 async function sleep(ms) {
