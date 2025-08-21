@@ -187,7 +187,7 @@
 
 async function getLink(showObj, isAnime) {
   const baseUrl = "http://127.0.0.1:9117/api/v2.0/indexers/";
-  const jApiKey = "jf1oooy4hhn2m7yw1t4ihymlik9jcbzi";
+  const jApiKey = "gpuwmvml5dp37c5wce8fbzbzj2wn4d8c";
   const url = `${baseUrl}${
     isAnime ? "nyaasi" : "1337x"
   }/results/torznab/api?q=${showObj.name}${
