@@ -175,8 +175,14 @@
       }
       if (isAnime) {
         const show = await getAnime(showName, showTraktUrl);
-        const [link, filename] = await getLink(show, isAnime);
-
+        const result = await getLink(show, isAnime);
+        
+        let link, filename;
+        if (Array.isArray(result)) {
+          [link, filename] = result;
+        } else {
+          link = filename = null;
+        }
         if (link) {
           insertHtml(link, filename, element);
         }
@@ -353,7 +359,7 @@ function getSeeders(seedObj) {
 
 function cleanRomaji(romajiStr) {
   const regex =
-    /.+?(?=[0-9]th)|.+?(?=Part)|.+?(?=Season)|.+?(?=SEASON)|^([^:])+/gs;
+    /^.*?(?=2nd|[0-9]th|Part|Season|SEASON|:|$)/gs;
   return romajiStr.match(regex)[0].trim();
 }
 
