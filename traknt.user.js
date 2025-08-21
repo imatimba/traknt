@@ -154,7 +154,8 @@ let getRomajiQueue = Promise.resolve();
     "TV Shizuoka",
     "Anistream",
     "Okinawa Television Broadcasting",
-    "MBC South Japan Broadcasting"
+    "MBC South Japan Broadcasting",
+    "Tencent Video"
   ];
 
   await sleep(2000);
