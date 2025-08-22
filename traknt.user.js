@@ -155,7 +155,7 @@ let getRomajiQueue = Promise.resolve();
     "Anistream",
     "Okinawa Television Broadcasting",
     "MBC South Japan Broadcasting",
-    "Tencent Video"
+    "Tencent Video",
   ];
 
   await sleep(2000);
@@ -179,7 +179,7 @@ let getRomajiQueue = Promise.resolve();
       if (isAnime) {
         const show = await getAnime(showName, showTraktUrl);
         const result = await getLink(show, isAnime);
-        
+
         let link, filename;
         if (Array.isArray(result)) {
           [link, filename] = result;
@@ -201,62 +201,85 @@ async function getLink(showObj, isAnime) {
   // Support both array and string for showObj.name
   const names = Array.isArray(showObj.name) ? showObj.name : [showObj.name];
 
+  const epNum = parseInt(showObj.episode, 10);
+  const epRegex = epNum < 10
+    ? `S[0-9]{2}E0${epNum}`
+    : `S[0-9]{2}E${epNum}`;
+
+  let globalTopSeeders = 0;
+  let globalTopLink = null;
+  let globalTopFilename = null;
+
   for (let i = 0; i < names.length; i++) {
     const name = names[i];
-    const url = `${baseUrl}${isAnime ? "nyaasi" : "1337x"}/results/torznab/api?q=${name}${showObj.season === "" ? "" : `+S${showObj.season}`}${isAnime ? "+" : "E"}${showObj.episode}${!isAnime ? "+1080" : ""}&apikey=${jApiKey}`;
+    const url = `${baseUrl}${
+      isAnime ? "nyaasi" : "1337x"
+    }/results/torznab/api?q=${name}${
+      showObj.season === "" ? "" : `+S${showObj.season}`
+    }${isAnime ? "+" : "E"}${showObj.episode}${
+      !isAnime ? "+1080" : ""
+    }&apikey=${jApiKey}`;
+    //console.debug(`[getLink] Fetching URL: ${url}`);
     try {
       const response = await fetch(url);
       const xmlResponse = await response.text();
       const jsonResponse = x2js.xml_str2json(xmlResponse);
       const searchResults = jsonResponse.rss.channel.item;
-      let topSeeders = 0;
-      let topLink;
-      let topFilename;
       console.debug(`[getLink] Search for name: ${name}`, searchResults);
       if (Array.isArray(searchResults)) {
         searchResults.forEach((obj) => {
           if (
             isAnime &&
-            (!obj.title.includes(` ${showObj.episode} `) &&
-             !obj.title.match(new RegExp(`S\\d{1,2}E${showObj.episode}`)) &&
-              obj.title.includes("720" || "480"))
+            ((!obj.title.includes(` ${showObj.episode} `) &&
+            !obj.title.match(new RegExp(epRegex))) ||
+            obj.title.includes("720" || "480"))
           ) {
             return;
           }
           const seeders = getSeeders(obj);
           let link = obj.link;
           let filename = obj.title;
-          if (seeders > topSeeders) {
-            topSeeders = seeders;
-            topLink = link;
-            topFilename = filename;
+          if (seeders > globalTopSeeders) {
+            globalTopSeeders = seeders;
+            globalTopLink = link;
+            globalTopFilename = filename;
           }
         });
       } else if (typeof searchResults === "object" && searchResults !== null) {
         if (isAnime) {
           if (
-            searchResults.title.includes(` ${showObj.episode} `) &&
+            (searchResults.title.includes(` ${showObj.episode} `) || 
+            searchResults.title.match(new RegExp(epRegex))) &&
             !searchResults.title.includes("720" || "480")
           ) {
-            topLink = searchResults.link;
-            topFilename = searchResults.title;
+            const seeders = getSeeders(searchResults);
+            if (seeders > globalTopSeeders) {
+              globalTopSeeders = seeders;
+              globalTopLink = searchResults.link;
+              globalTopFilename = searchResults.title;
+            }
           }
         } else {
-          topLink = searchResults.link;
-          topFilename = searchResults.title;
+          const seeders = getSeeders(searchResults);
+          if (seeders > globalTopSeeders) {
+            globalTopSeeders = seeders;
+            globalTopLink = searchResults.link;
+            globalTopFilename = searchResults.title;
+          }
         }
       }
-      console.debug(`[getLink] Top link: ${topLink}, Top filename: ${topFilename}`);
-      if (topLink) {
-        return [topLink, topFilename];
-      }
-      // else, try next name
     } catch (error) {
       console.error(error);
     }
   }
-  // If none succeeded
-  return null;
+  console.debug(
+    `[getLink] Global top link: ${globalTopLink}, Global top filename: ${globalTopFilename}`
+  );
+  if (globalTopLink) {
+    return [globalTopLink, globalTopFilename];
+  } else {
+    return null;
+  }
 }
 
 function insertHtml(link, filename, element) {
@@ -319,7 +342,7 @@ async function getRomaji(showNameStr) {
       const wait = 500 - (Date.now() - getRomaji.lastCall);
       if (wait > 0) {
         //console.debug(`[getRomaji] Queue: waiting ${wait}ms for`, showNameStr);
-        await new Promise(res => setTimeout(res, wait));
+        await new Promise((res) => setTimeout(res, wait));
       }
     }
     getRomaji.lastCall = Date.now();
@@ -330,6 +353,7 @@ async function getRomaji(showNameStr) {
         Media (search: $search, type: ANIME, sort: TRENDING_DESC) {
           title {
             romaji
+            english
           }
           synonyms
        }
@@ -354,13 +378,18 @@ async function getRomaji(showNameStr) {
     try {
       const response = await fetch(url, options);
       const json = await response.json();
-      console.debug(`[getRomaji] Response for`, showNameStr, json);
+      //console.debug(`[getRomaji] Response for`, showNameStr, json);
       const romaji = cleanName(json.data.Media.title.romaji).replaceAll(" ", "+");
+      const english = cleanName(json.data.Media.title.english).replaceAll(" ", "+");
       let synonym = null;
-      if (json.data.Media.synonyms && Array.isArray(json.data.Media.synonyms) && json.data.Media.synonyms[0]) {
+      if (
+        json.data.Media.synonyms &&
+        Array.isArray(json.data.Media.synonyms) &&
+        json.data.Media.synonyms[0]
+      ) {
         synonym = cleanName(json.data.Media.synonyms[0]).replaceAll(" ", "+");
       }
-      const showName = synonym ? [romaji, synonym] : [romaji];
+      const showName = synonym ? [romaji, english, synonym] : [romaji, english];
       return showName;
     } catch (error) {
       console.error(error);
@@ -378,8 +407,7 @@ function getSeeders(seedObj) {
 }
 
 function cleanName(nameStr) {
-  const regex =
-    /^.*?(?=2nd|[0-9]th|Part|Season|SEASON| 2|:|$)/gs;
+  const regex = /^.*?(?=2nd|[0-9]th|Part|Season|SEASON| 2|:|$)/gs;
   return nameStr.match(regex)[0].trim();
 }
 
