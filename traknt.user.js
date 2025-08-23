@@ -160,6 +160,11 @@ let getRomajiQueue = Promise.resolve();
 
   await sleep(2000);
   gridItems.forEach(async (element) => {
+    const parent = element.parentElement;
+    const dateElement = parent.previousElementSibling;
+    const dateDay = dateElement.querySelector("div.date")?.textContent;
+    const dateMonthStr = dateElement.querySelector("div.month")?.textContent;
+    const watchedIcon = element.querySelector("div.quick-icons div.actions a.watch");
     const showTraktUrl = element.firstChild.content;
     const showName = element.querySelector(
       "div.titles span.hidden meta"
@@ -170,7 +175,33 @@ let getRomajiQueue = Promise.resolve();
     let isAnime = false;
 
     if (!showTraktUrl) {
-      //handle the VIP ad that takes a grid space
+      return;
+    }
+
+    if (watchedIcon.classList.contains('selected')) {
+      // Skip already watched
+      //console.debug(`[Skip] Already watched: ${showName}`);
+      return;
+    }
+
+    // Compare dateDay and dateMonthStr to current date
+    const monthNames = [
+      "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"
+    ];
+    const today = new Date();
+    const itemMonthIdx = monthNames.findIndex(m => m.toLowerCase() === (dateMonthStr||"").toLowerCase());
+    const itemDay = parseInt(dateDay, 10);
+    const currentMonthIdx = today.getMonth();
+    const currentDay = today.getDate();
+
+    //console.debug(`[Date Check] Item Date: ${dateMonthStr} ${dateDay}, Today: ${monthNames[currentMonthIdx]} ${currentDay}`);
+
+    if (
+      (itemMonthIdx > currentMonthIdx) ||
+      (itemMonthIdx === currentMonthIdx && itemDay > currentDay)
+    ) {
+      // Skip items after today
+      //console.debug(`[Skip] Future date: ${showName} (${dateMonthStr} ${dateDay})`);
       return;
     } else {
       if (jpTvNetworks.includes(tvNetwork)) {
@@ -225,7 +256,7 @@ async function getLink(showObj, isAnime) {
       const xmlResponse = await response.text();
       const jsonResponse = x2js.xml_str2json(xmlResponse);
       const searchResults = jsonResponse.rss.channel.item;
-      console.debug(`[getLink] Search for name: ${name}`, searchResults);
+      //console.debug(`[getLink] Search for name: ${name}`, searchResults);
       if (Array.isArray(searchResults)) {
         searchResults.forEach((obj) => {
           if (
@@ -272,9 +303,9 @@ async function getLink(showObj, isAnime) {
       console.error(error);
     }
   }
-  console.debug(
-    `[getLink] Global top link: ${globalTopLink}, Global top filename: ${globalTopFilename}`
-  );
+  //console.debug(
+  //  `[getLink] Global top link: ${globalTopLink}, Global top filename: ${globalTopFilename}`
+  //);
   if (globalTopLink) {
     return [globalTopLink, globalTopFilename];
   } else {
@@ -331,7 +362,7 @@ async function getAnime(showNameStr, showLink) {
     season: showSeason,
     episode: showEpisode,
   };
-  console.dir(showData);
+  //console.dir(showData);
   return showData;
 }
 
@@ -339,7 +370,7 @@ async function getRomaji(showNameStr) {
   getRomajiQueue = getRomajiQueue.then(async () => {
     // Wait 500ms before each request except the first
     if (getRomaji.lastCall) {
-      const wait = 500 - (Date.now() - getRomaji.lastCall);
+      const wait = 250 - (Date.now() - getRomaji.lastCall);
       if (wait > 0) {
         //console.debug(`[getRomaji] Queue: waiting ${wait}ms for`, showNameStr);
         await new Promise((res) => setTimeout(res, wait));
